@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A small tool for making bold, hex-based halftone images.">
+  <title>D&AD Hex Image Studio</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topmeta">⬡ D&AD Hex Image Studio</div>
+      <div class="actions">
+        <button id="resetBtn" type="button">Reset</button>
+        <button id="exportSvg" type="button" disabled>Export SVG</button>
+        <button class="primary" id="exportPng" type="button" disabled>Export PNG</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="left">
+        <h2 class="section-title">Document</h2>
+        <div class="fieldgrid">
+          <div class="field">
+            <label for="width">Width</label>
+            <input id="width" type="number" min="1" max="12000" value="1600">
+          </div>
+          <div class="field">
+            <label for="height">Height</label>
+            <input id="height" type="number" min="1" max="12000" value="1200">
+          </div>
+        </div>
+
+        <div class="fieldgrid fieldgrid-spaced">
+          <div class="field">
+            <label for="units">Units</label>
+            <select id="units" aria-label="Document units">
+              <option value="px">Pixels</option>
+              <option value="mm">Millimetres</option>
+              <option value="in">Inches</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="dpi">DPI</label>
+            <input id="dpi" type="number" min="36" max="1200" value="300">
+          </div>
+        </div>
+
+        <div class="hint">
+          Physical units are converted to pixels using your DPI setting.
+        </div>
+
+        <h2 class="section-title spaced">Source image</h2>
+
+        <label class="upload">
+          <input
+            id="file"
+            class="visually-hidden"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            aria-label="Choose a JPG, PNG or WebP image"
+          >
+          <strong>＋ Upload image</strong><br>
+          <small>Choose JPG, PNG or WebP</small>
+        </label>
+        <div class="control">
+          <div class="control-head">
+            <span>Hexagon colour</span>
+          </div>
+          <div class="colour-options">
+            <button type="button" data-colour="#000000" class="active">Black</button>
+            <button type="button" data-colour="#ffffff">White</button>
+            <button type="button" data-colour="#FFD200">Gold</button>
+          </div>
+          <input id="ink" type="hidden" value="#000000">
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Background</span>
+          </div>
+          <select id="background" aria-label="Canvas background">
+            <option value="white">White</option>
+            <option value="transparent">Transparent</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Placement</span>
+          </div>
+          <div class="placement-options">
+            <button type="button" data-fit="contain" class="active">Fit image</button>
+            <button type="button" data-fit="cover">Fill canvas</button>
+          </div>
+          <input id="imageFit" type="hidden" value="contain">
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Zoom</span>
+            <span class="value" id="zoomVal">100%</span>
+          </div>
+          <input id="zoom" type="range" min="50" max="300" value="100" aria-label="Zoom">
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Horizontal position</span>
+            <span class="value" id="posXVal">50%</span>
+          </div>
+          <input id="posX" type="range" min="0" max="100" value="50" aria-label="Horizontal image position">
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Vertical position</span>
+            <span class="value" id="posYVal">50%</span>
+          </div>
+          <input id="posY" type="range" min="0" max="100" value="50" aria-label="Vertical image position">
+        </div>
+
+        <button id="fitBtn" class="full-width" type="button" disabled>
+          Reset framing
+        </button>
+
+        <div class="status" id="fileStatus" role="status" aria-live="polite">
+          No image loaded
+        </div>
+      </aside>
+
+      <main class="center">
+        <div class="workspace-label">
+          <span>ARTBOARD · LIVE PREVIEW</span>
+          <span id="dimensionLabel">1600 × 1200 px</span>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="empty" id="empty">
+            <div class="symbol">⬡</div>
+            <strong>Your canvas is ready.</strong><br>
+            Upload an image to start making hexagonal halftones.
+          </div>
+
+          <canvas
+            id="preview"
+            aria-label="Generated hexagonal halftone preview"
+            hidden
+          ></canvas>
+        </div>
+
+        <div class="footerline">
+          <span id="previewStatus" role="status" aria-live="polite">
+            Waiting for an image
+          </span>
+          <span id="exportStatus" role="status" aria-live="polite"></span>
+          <span>Preview is scaled to fit this window</span>
+        </div>
+      </main>
+
+      <aside class="right">
+        <h2 class="section-title">Properties</h2>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Hexagon spacing</span>
+            <span class="value" id="spacingVal">18 px</span>
+          </div>
+          <input id="spacing" type="range" min="8" max="30" value="18" aria-label="Hexagon spacing">
+          <div class="hint">Smaller spacing creates more hexagons and finer image detail.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Maximum hexagon size</span>
+            <span class="value" id="maxSizeVal">100%</span>
+          </div>
+          <input id="maxSize" type="range" min="30" max="100" value="100" aria-label="Maximum hexagon size">
+          <div class="hint">Controls how large the darkest hexagons can grow within each cell.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Minimum tone / cutoff</span>
+            <span class="value" id="cutoffVal">4%</span>
+          </div>
+          <input id="cutoff" type="range" min="0" max="45" value="4" aria-label="Minimum tone cutoff">
+          <div class="hint">Suppresses tiny hexagons in lighter areas.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Brightness</span>
+            <span class="value" id="brightnessVal">0</span>
+          </div>
+          <input id="brightness" type="range" min="-100" max="100" value="0" aria-label="Brightness">
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Contrast</span>
+            <span class="value" id="contrastVal">0</span>
+          </div>
+          <input id="contrast" type="range" min="-100" max="100" value="0" aria-label="Contrast">
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Black point</span>
+            <span class="value" id="blackVal">0</span>
+          </div>
+          <input id="black" type="range" min="0" max="100" value="0" aria-label="Black point">
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>White point</span>
+            <span class="value" id="whiteVal">100</span>
+          </div>
+          <input id="white" type="range" min="0" max="100" value="100" aria-label="White point">
+          <div class="hint">Stretch tonal range by setting the darkest and lightest input values.</div>
+        </div>
+
+        <!-- <div class="control">
+          <div class="control-head">
+            <span>Grid orientation</span>
+          </div>
+          <select id="orientation" aria-label="Grid orientation">
+            <option value="flat">Flat-top hexagons</option>
+            <option value="pointy">Pointy-top hexagons</option>
+          </select>
+        </div> -->
+
+        <!-- <div class="control">
+          <div class="control-head">
+            <span>Ink grain</span>
+            <span class="value" id="grainVal">0%</span>
+          </div>
+          <input id="grain" type="range" min="0" max="100" value="0" aria-label="Ink grain">
+          <div class="hint">Controls the amount of tiny imperfections and missing ink.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Grain size</span>
+            <span class="value" id="grainSizeVal">2 px</span>
+          </div>
+          <input id="grainSize" type="range" min="1" max="8" value="2" aria-label="Grain size">
+          <div class="hint">Controls whether the texture is fine speckling or larger worn patches.</div>
+        </div> -->
+
+        <div class="control">
+          <div class="control-head">
+            <span>Ink bleed</span>
+            <span class="value" id="bleedVal">0%</span>
+          </div>
+          <input id="bleed" type="range" min="0" max="100" value="0" aria-label="Ink bleed">
+          <div class="hint">Makes the printed edges slightly heavier and more irregular.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Position irregularity</span>
+            <span class="value" id="jitterVal">0%</span>
+          </div>
+          <input id="jitter" type="range" min="0" max="100" value="0" aria-label="Position irregularity">
+          <div class="hint">Moves individual hexagons slightly away from the perfect grid.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Size variation</span>
+            <span class="value" id="variationVal">0%</span>
+          </div>
+          <input id="variation" type="range" min="0" max="100" value="0" aria-label="Size variation">
+          <div class="hint">Gives individual hexagons slightly different sizes.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Grid warping</span>
+            <span class="value" id="warpVal">0%</span>
+          </div>
+          <input id="warp" type="range" min="0" max="100" value="0" aria-label="Grid warping">
+          <div class="hint">Gently bends and shifts the underlying hexagon grid.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Ink clumping</span>
+            <span class="value" id="clumpVal">0%</span>
+          </div>
+          <input id="clump" type="range" min="0" max="100" value="0" aria-label="Ink clumping">
+          <div class="hint">Creates patches where neighbouring hexagons grow together and overlap.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Shape distortion</span>
+            <span class="value" id="shapeVal">0%</span>
+          </div>
+          <input id="shape" type="range" min="0" max="100" value="0" aria-label="Shape distortion">
+          <div class="hint">Makes individual hexagons less geometrically perfect.</div>
+        </div>
+
+          <div class="status" id="exportStatus" role="status" aria-live="polite"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>
