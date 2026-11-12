@@ -13,6 +13,8 @@
     <header class="topbar">
       <div class="topmeta">⬡ D&AD Hex Image Studio</div>
       <div class="actions">
+        <button id="imageMode" type="button">Image Mode</button>
+        <button id="typeMode" type="button">Type Mode</button>
         <button id="resetBtn" type="button">Reset</button>
         <button id="exportSvg" type="button" disabled>Export SVG</button>
         <button class="primary" id="exportPng" type="button" disabled>Export PNG</button>
@@ -51,20 +53,41 @@
         <div class="hint">
           Physical units are converted to pixels using your DPI setting.
         </div>
-
-        <h2 class="section-title spaced">Source image</h2>
-
-        <label class="upload">
+        <div data-mode="image"> <!-- image controls -->
+          <h2 class="section-title spaced">Source image</h2>
+          <label class="upload">
           <input
             id="file"
             class="visually-hidden"
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            aria-label="Choose a JPG, PNG or WebP image"
-          >
+            aria-label="Choose a JPG, PNG or WebP image">
           <strong>＋ Upload image</strong><br>
           <small>Choose JPG, PNG or WebP</small>
         </label>
+        </div> <!-- end of image controls -->
+
+        <!-- text controls -->
+        <div data-mode="text" hidden>
+          <h2 class="section-title spaced">Text</h2>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Your text</span>
+            </div>
+            <textarea id="text" rows="3" aria-label="Text to halftone">TESTER WORD</textarea>
+          </div>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Text size</span>
+              <span class="value" id="textSizeVal">25%</span>
+            </div>
+            <input id="textSize" type="range" min="5" max="100" value="25" aria-label="Text size">
+          </div>
+        </div>
+        <!-- end of text controls -->
+
         <div class="control">
           <div class="control-head">
             <span>Hexagon colour</span>
@@ -81,54 +104,101 @@
           <div class="control-head">
             <span>Background</span>
           </div>
-          <select id="background" aria-label="Canvas background">
-            <option value="white">White</option>
-            <option value="transparent">Transparent</option>
-          </select>
+            <label>
+              <input type="checkbox" id="background" checked>
+              White background
+            </label>
         </div>
 
-        <div class="control">
-          <div class="control-head">
-            <span>Placement</span>
+        <!-- start image settings -->
+        <div data-mode="image">
+          <div class="control">
+            <div class="control-head">
+              <span>Placement</span>
+            </div>
+            <div class="placement-options">
+              <button type="button" data-fit="contain" class="active">Fit image</button>
+              <button type="button" data-fit="cover">Fill canvas</button>
+            </div>
+            <input id="imageFit" type="hidden" value="contain">
           </div>
-          <div class="placement-options">
-            <button type="button" data-fit="contain" class="active">Fit image</button>
-            <button type="button" data-fit="cover">Fill canvas</button>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Zoom</span>
+              <span class="value" id="zoomVal">100%</span>
+            </div>
+            <input id="zoom" type="range" min="50" max="300" value="100" aria-label="Zoom">
           </div>
-          <input id="imageFit" type="hidden" value="contain">
-        </div>
 
-        <div class="control">
-          <div class="control-head">
-            <span>Zoom</span>
-            <span class="value" id="zoomVal">100%</span>
+          <div class="control">
+            <div class="control-head">
+              <span>Horizontal position</span>
+              <span class="value" id="posXVal">50%</span>
+            </div>
+            <input id="posX" type="range" min="0" max="100" value="50" aria-label="Horizontal image position">
           </div>
-          <input id="zoom" type="range" min="50" max="300" value="100" aria-label="Zoom">
-        </div>
 
-        <div class="control">
-          <div class="control-head">
-            <span>Horizontal position</span>
-            <span class="value" id="posXVal">50%</span>
+          <div class="control">
+            <div class="control-head">
+              <span>Vertical position</span>
+              <span class="value" id="posYVal">50%</span>
+            </div>
+            <input id="posY" type="range" min="0" max="100" value="50" aria-label="Vertical image position">
           </div>
-          <input id="posX" type="range" min="0" max="100" value="50" aria-label="Horizontal image position">
-        </div>
 
-        <div class="control">
-          <div class="control-head">
-            <span>Vertical position</span>
-            <span class="value" id="posYVal">50%</span>
+          <button id="fitBtn" class="full-width" type="button" disabled>
+            Reset framing
+          </button>
+
+          <h2 class="section-title">Tone</h2>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Minimum tone / cutoff</span>
+              <span class="value" id="cutoffVal">4%</span>
+            </div>
+            <input id="cutoff" type="range" min="0" max="45" value="4" aria-label="Minimum tone cutoff">
+            <div class="hint">Suppresses tiny hexagons in lighter areas.</div>
           </div>
-          <input id="posY" type="range" min="0" max="100" value="50" aria-label="Vertical image position">
-        </div>
 
-        <button id="fitBtn" class="full-width" type="button" disabled>
-          Reset framing
-        </button>
+          <div class="control">
+            <div class="control-head">
+              <span>Brightness</span>
+              <span class="value" id="brightnessVal">0</span>
+            </div>
+            <input id="brightness" type="range" min="-100" max="100" value="0" aria-label="Brightness">
+          </div>
 
-        <div class="status" id="fileStatus" role="status" aria-live="polite">
-          No image loaded
-        </div>
+          <div class="control">
+            <div class="control-head">
+              <span>Contrast</span>
+              <span class="value" id="contrastVal">0</span>
+            </div>
+            <input id="contrast" type="range" min="-100" max="100" value="0" aria-label="Contrast">
+          </div>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Black point</span>
+              <span class="value" id="blackVal">0</span>
+            </div>
+            <input id="black" type="range" min="0" max="100" value="0" aria-label="Black point">
+          </div>
+
+          <div class="control">
+            <div class="control-head">
+              <span>White point</span>
+              <span class="value" id="whiteVal">100</span>
+            </div>
+            <input id="white" type="range" min="0" max="100" value="100" aria-label="White point">
+            <div class="hint">Stretch tonal range by setting the darkest and lightest input values.</div>
+          </div>
+
+          <div class="status" id="fileStatus" role="status" aria-live="polite">
+            No image loaded
+          </div>
+        </div> <!-- end image settings  -->
       </aside>
 
       <main class="center">
@@ -161,14 +231,14 @@
       </main>
 
       <aside class="right">
-        <h2 class="section-title">Properties</h2>
+        <h2 class="section-title">Hexagon Properties</h2>
 
         <div class="control">
           <div class="control-head">
             <span>Hexagon spacing</span>
             <span class="value" id="spacingVal">18 px</span>
           </div>
-          <input id="spacing" type="range" min="8" max="30" value="18" aria-label="Hexagon spacing">
+          <input id="spacing" type="range" min="3" max="12" value="6" aria-label="Hexagon spacing">
           <div class="hint">Smaller spacing creates more hexagons and finer image detail.</div>
         </div>
 
@@ -177,51 +247,10 @@
             <span>Maximum hexagon size</span>
             <span class="value" id="maxSizeVal">100%</span>
           </div>
-          <input id="maxSize" type="range" min="30" max="100" value="100" aria-label="Maximum hexagon size">
+          <input id="maxSize" type="range" min="85" max="100" value="100" aria-label="Maximum hexagon size">
           <div class="hint">Controls how large the darkest hexagons can grow within each cell.</div>
         </div>
-
-        <div class="control">
-          <div class="control-head">
-            <span>Minimum tone / cutoff</span>
-            <span class="value" id="cutoffVal">4%</span>
-          </div>
-          <input id="cutoff" type="range" min="0" max="45" value="4" aria-label="Minimum tone cutoff">
-          <div class="hint">Suppresses tiny hexagons in lighter areas.</div>
-        </div>
-
-        <div class="control">
-          <div class="control-head">
-            <span>Brightness</span>
-            <span class="value" id="brightnessVal">0</span>
-          </div>
-          <input id="brightness" type="range" min="-100" max="100" value="0" aria-label="Brightness">
-        </div>
-
-        <div class="control">
-          <div class="control-head">
-            <span>Contrast</span>
-            <span class="value" id="contrastVal">0</span>
-          </div>
-          <input id="contrast" type="range" min="-100" max="100" value="0" aria-label="Contrast">
-        </div>
-
-        <div class="control">
-          <div class="control-head">
-            <span>Black point</span>
-            <span class="value" id="blackVal">0</span>
-          </div>
-          <input id="black" type="range" min="0" max="100" value="0" aria-label="Black point">
-        </div>
-
-        <div class="control">
-          <div class="control-head">
-            <span>White point</span>
-            <span class="value" id="whiteVal">100</span>
-          </div>
-          <input id="white" type="range" min="0" max="100" value="100" aria-label="White point">
-          <div class="hint">Stretch tonal range by setting the darkest and lightest input values.</div>
-        </div>
+        
 
         <!-- <div class="control">
           <div class="control-head">
@@ -250,6 +279,7 @@
           <input id="grainSize" type="range" min="1" max="8" value="2" aria-label="Grain size">
           <div class="hint">Controls whether the texture is fine speckling or larger worn patches.</div>
         </div> -->
+        <h2 class="section-title">Ink</h2>
 
         <div class="control">
           <div class="control-head">
@@ -265,7 +295,7 @@
             <span>Position irregularity</span>
             <span class="value" id="jitterVal">0%</span>
           </div>
-          <input id="jitter" type="range" min="0" max="100" value="0" aria-label="Position irregularity">
+          <input id="jitter" type="range" min="0" max="35" value="0" aria-label="Position irregularity">
           <div class="hint">Moves individual hexagons slightly away from the perfect grid.</div>
         </div>
 
@@ -274,7 +304,7 @@
             <span>Size variation</span>
             <span class="value" id="variationVal">0%</span>
           </div>
-          <input id="variation" type="range" min="0" max="100" value="0" aria-label="Size variation">
+          <input id="variation" type="range" min="0" max="40" value="0" aria-label="Size variation">
           <div class="hint">Gives individual hexagons slightly different sizes.</div>
         </div>
 
@@ -296,17 +326,15 @@
           <div class="hint">Creates patches where neighbouring hexagons grow together and overlap.</div>
         </div>
 
-        <div class="control">
+        <!-- <div class="control">
           <div class="control-head">
             <span>Shape distortion</span>
             <span class="value" id="shapeVal">0%</span>
           </div>
           <input id="shape" type="range" min="0" max="100" value="0" aria-label="Shape distortion">
           <div class="hint">Makes individual hexagons less geometrically perfect.</div>
-        </div>
+        </div> -->
 
-          <div class="status" id="exportStatus" role="status" aria-live="polite"></div>
-        </div>
       </aside>
     </div>
   </div>

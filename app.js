@@ -11,12 +11,12 @@
 
   const CONTROL_IDS = [
     'spacing', 'maxSize', 'cutoff', 'brightness', 'contrast', 'black', 'white',
-    'bleed', 'jitter', 'variation', 'warp', 'clump', 'shape',
+    'bleed', 'jitter', 'variation', 'warp', 'clump',
   ];
 
   const DEFAULTS = {
-    spacing: 18,
-    maxSize: 92,
+    spacing: 6,
+    maxSize: 100,
     cutoff: 4,
     brightness: 0,
     contrast: 0,
@@ -29,7 +29,7 @@
     clump: 0,
     shape: 0,
     ink: '#000000',
-    background: 'white',
+    background: true, // is checked
     width: 1600,
     height: 1200,
     dpi: 300,
@@ -37,8 +37,11 @@
     imageFit: 'contain',
     zoom: 100,
     posX: 50,
-    posY: 50
+    posY: 50, 
+    text: 'TESTER WORD',
+    textSize: 25,
   };
+
 
   const PREVIEW_MAX_DIMENSION = 1200;
   const PNG_WARNING_PIXELS = 50_000_000;
@@ -49,10 +52,14 @@
   let renderTimer = null;
   let imageLoadToken = 0;
 
+  let mode = 'image'; // 'image' | 'text'
+  // let customFontFamily = null;
+  // let fontCounter = 0;
+
   // ---------------------------------------------------------------------------
   // UTILITY FUNCTIONS
   // ---------------------------------------------------------------------------
-
+    
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -77,13 +84,13 @@
   }
 
   function getBackgroundColour() {
-    return $('background').value === 'transparent' ? null : '#ffffff';
+    return $('background').checked ? '#ffffff' : null;
   }
 
   function updatePreviewBackdrop() {
     preview.classList.toggle(
       'is-transparent',
-      $('background').value === 'transparent'
+      !$('background').checked
     );
   }
 
@@ -152,6 +159,7 @@
   function updateDimensionLabel() {
     const documentSize = getDocumentSize();
     const label = $('dimensionLabel');
+    // const hasImage = hasSource();
 
     if (!documentSize.valid) {
       label.textContent = 'Invalid dimensions';
@@ -169,7 +177,7 @@
     label.textContent =
       `${documentSize.width.toLocaleString()} × ${documentSize.height.toLocaleString()} px`;
 
-    const hasImage = Boolean(sourceImage);
+    const hasImage = hasSource();
 
     $('exportPng').disabled = !hasImage;
     // $('exportPngTop').disabled = !hasImage;
@@ -195,7 +203,6 @@
           'variation',
           'warp',
           'clump',
-          'shape',
         ].includes(id)
       ) {
         suffix = '%';
@@ -207,35 +214,104 @@
     $('zoomVal').textContent = `${$('zoom').value}%`;
     $('posXVal').textContent = `${$('posX').value}%`;
     $('posYVal').textContent = `${$('posY').value}%`;
+    $('textSizeVal').textContent = `${$('textSize').value}%`;
   }
 
 function scheduleRender() {
   updateControlLabels();
   updatePreviewBackdrop();
 
-  if (!sourceImage) return;
+  if (!hasSource()) return;
 
-    if (!sourceImage) return;
+  clearTimeout(renderTimer);
 
-    clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    try {
+      renderPreview();
+    } catch (error) {
+      console.error('Preview render failed:', error);
+      updateStatus(
+        'previewStatus',
+        'Preview could not be rendered. Try reducing the document size.'
+      );
+    }
+  }, 35);
+}
 
-    renderTimer = setTimeout(() => {
-      try {
-        renderPreview();
-      } catch (error) {
-        console.error('Preview render failed:', error);
-        updateStatus(
-          'previewStatus',
-          'Preview could not be rendered. Try reducing the document size.'
-        );
-      }
-    }, 35);
+
+  // ---------------------------------------------------------------------------
+  // TEXT LOADING
+  // ---------------------------------------------------------------------------
+  function hasSource() {
+  return mode === 'text'
+    ? $('text').value.trim().length > 0
+    : Boolean(sourceImage);
+}
+
+// Equivalent of your p5 pg.text(...) buffer.
+// Size is a % of canvas height, so preview and full-res export match.
+function drawTextSource(context, width, height) {
+  const fontFamily = '"Baskov", Georgia, serif';
+  const lines = $('text').value.split('\n');
+
+  let size = height * (readNumber('textSize', DEFAULTS.textSize) / 100);
+
+  context.font = `${size}px ${fontFamily}`;
+  const widest = Math.max(...lines.map((l) => context.measureText(l).width));
+  const maxWidth = width * 0.9;
+
+  if (widest > maxWidth) {
+    size *= maxWidth / widest;
+    context.font = `${size}px ${fontFamily}`;
   }
+
+  const lineHeight = size * 1.1;
+  const top = height / 2 - ((lines.length - 1) * lineHeight) / 2;
+
+  context.fillStyle = '#000000';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+
+  lines.forEach((line, i) => {
+    context.fillText(line, width / 2, top + i * lineHeight);
+  });
+}
+
+// async function loadFontFile(file) {
+//   if (!file) return;
+//   try {
+//     const name = `UserFont${++fontCounter}`;
+//     const face = new FontFace(name, await file.arrayBuffer());
+//     await face.load();
+//     document.fonts.add(face);
+//     customFontFamily = name;
+//     scheduleRender();
+//   } catch (error) {
+//     console.error('Font load failed:', error);
+//     updateStatus('previewStatus', 'Could not load that font file.');
+//   }
+// }
+
+function setMode(next) {
+  mode = next;
+
+  $('imageMode').classList.toggle('active', mode === 'image');
+  $('typeMode').classList.toggle('active', mode === 'text');
+
+  document.querySelectorAll('[data-mode]').forEach((el) => {
+    el.hidden = el.dataset.mode !== mode;
+  });
+
+  const ready = hasSource();
+  $('empty').hidden = ready;
+  preview.hidden = !ready;
+
+  updateDimensionLabel(); // also schedules a render
+}
 
   // ---------------------------------------------------------------------------
   // IMG LOADING
   // ---------------------------------------------------------------------------
-
   function loadImage(file) {
     if (!file) return;
 
@@ -315,7 +391,9 @@ function scheduleRender() {
       context.fillRect(0, 0, width, height);
     }
 
-    if (sourceImage) {
+    if (mode === 'text') {
+      drawTextSource(context, width, height);
+    } else if (sourceImage) {
       const fit = $('imageFit').value;
 
       const baseScale = fit === 'cover'
@@ -369,6 +447,8 @@ function scheduleRender() {
 
     let luminance =
       (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+
+    if (mode === 'text') return luminance; // text is pure black on white, so skip tone settings
 
     const brightness = readNumber('brightness', 0);
 
@@ -470,7 +550,7 @@ function generateHexagons(width, height, scale = 1) {
   const variation = readNumber('variation', 0) / 100;
   const warp = readNumber('warp', 0) / 100;
   const clump = readNumber('clump', 0) / 100;
-  const shape = readNumber('shape', 0) / 100;
+  // const shape = readNumber('shape', 0) / 100;
 
   // Pointy-top grid: columns are one hexagon-width apart,
   // rows interlock at 3/4 of the hexagon height.
@@ -553,7 +633,8 @@ function generateHexagons(width, height, scale = 1) {
         bleed * spacing * 0.1;
 
       const roughness =
-        Math.min(0.6, bleed * 0.18 + shape * 0.35);
+        // Math.min(0.6, bleed * 0.18 + shape * 0.35);
+        Math.min(0.6, bleed * 0.18 * 0.35);
 
       if (radius > 0.15) {
         hexagons.push({
@@ -573,6 +654,9 @@ function generateHexagons(width, height, scale = 1) {
   };
 }
 
+function load_text() {
+  
+}
 
   // ---------------------------------------------------------------------------
   // INK TEXTURE
@@ -669,7 +753,7 @@ function generateHexagons(width, height, scale = 1) {
   }
 
   function renderPreview() {
-    if (!sourceImage) return;
+    if (!hasSource()) return;
 
     const documentSize = getDocumentSize();
 
@@ -814,7 +898,7 @@ ${background}
   }
 
   function exportPng() {
-    if (!sourceImage) return;
+    if (!hasSource()) return;
 
     const documentSize = getDocumentSize();
 
@@ -899,7 +983,7 @@ ${background}
   }
 
   function exportSvg() {
-    if (!sourceImage) return;
+    if (!hasSource()) return;
 
     const documentSize = getDocumentSize();
 
@@ -1012,12 +1096,17 @@ fitButtons.forEach((button) => {
 });
 
 
-  function resetSettings() {
-    Object.entries(DEFAULTS).forEach(([id, value]) => {
-      if ($(id)) {
-        $(id).value = value;
-      }
-    });
+function resetSettings() {
+  Object.entries(DEFAULTS).forEach(([id, value]) => {
+    const el = $(id);
+    if (!el) return;
+
+    if (el.type === 'checkbox') {
+      el.checked = Boolean(value);
+    } else {
+      el.value = value;
+    }
+  });
 
     updateDimensionLabel();
     scheduleRender();
@@ -1056,27 +1145,40 @@ fitButtons.forEach((button) => {
   //   $('background').value = 'custom';
   //   scheduleRender();
   // });
-
+  
   ['width', 'height', 'dpi', 'units'].forEach((id) => {
     $(id).addEventListener('input', updateDimensionLabel);
     $(id).addEventListener('change', updateDimensionLabel);
   });
-
+  
   $('fitBtn').addEventListener('click', () => {
     $('imageFit').value = 'contain';
     syncFitButtons();
     $('zoom').value = 100;
     $('posX').value = 50;
     $('posY').value = 50;
-
+    
     scheduleRender();
   });
-
+  $('imageMode').addEventListener('click', () => setMode('image'));
+  $('typeMode').addEventListener('click', () => setMode('text'));
+  $('text').addEventListener('input', scheduleRender);
+  $('textSize').addEventListener('input', scheduleRender);
+  
   $('exportPng').addEventListener('click', exportPng);
   $('exportSvg').addEventListener('click', exportSvg);
-  // $('exportPngTop').addEventListener('click', exportPng);
-  // $('exportSvgTop').addEventListener('click', exportSvg);
+  // $('imageMode').addEventListener('click', () => setMode('image'));
+  // $('typeMode').addEventListener('click', () => setMode('text'));
+  
+  // $('fontFile').addEventListener('change', (e) => loadFontFile(e.target.files[0]));
   $('resetBtn').addEventListener('click', resetSettings);
+  new FontFace('Baskov', 'url(BaskovRegular.otf)')
+      .load()
+      .then((face) => {
+        document.fonts.add(face);
+        scheduleRender();
+      })
+      .catch((error) => console.warn('Baskov failed to load:', error));
 
   updateControlLabels();
   updateDimensionLabel();

@@ -20,6 +20,15 @@ body {
     BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+[hidden] { display: none !important; }
+
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  resize: vertical;
+}
+
 button,
 input,
 select {
