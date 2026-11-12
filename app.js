@@ -1126,30 +1126,24 @@ function resetSettings() {
   //   pickColour('background');
   // });
 
-  CONTROL_IDS.forEach((id) => {
-    $(id).addEventListener('input', scheduleRender);
-  });
+  function on(id, eventName, handler) {
+    const el = $(id);
+    if (!el) {
+      console.error(`Missing element with id "${id}" in the HTML`);
+      return;
+    }
+    el.addEventListener(eventName, handler);
+  }
 
-  ['zoom', 'posX', 'posY'].forEach((id) => {
-    $(id).addEventListener('input', scheduleRender);
-  });
+  CONTROL_IDS.forEach((id) => on(id, 'input', scheduleRender));
+  ['zoom', 'posX', 'posY', 'textSize', 'text'].forEach((id) => on(id, 'input', scheduleRender));
+  ['imageFit', 'background'].forEach((id) => on(id, 'change', scheduleRender));
 
-  [
-    'imageFit',
-    'background',
-  ].forEach((id) => {
-    $(id).addEventListener('change', scheduleRender);
-  });
-
-  // $('backgroundColor').addEventListener('input', () => {
-  //   $('background').value = 'custom';
-  //   scheduleRender();
-  // });
-  
   ['width', 'height', 'dpi', 'units'].forEach((id) => {
-    $(id).addEventListener('input', updateDimensionLabel);
-    $(id).addEventListener('change', updateDimensionLabel);
+    on(id, 'input', updateDimensionLabel);
+    on(id, 'change', updateDimensionLabel);
   });
+
   
   $('fitBtn').addEventListener('click', () => {
     $('imageFit').value = 'contain';
