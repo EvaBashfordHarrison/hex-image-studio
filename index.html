@@ -86,6 +86,14 @@
             <input id="textSize" type="range" min="5" max="100" value="25" aria-label="Text size">
           </div>
         </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Type gradient</span>
+            <span class="value" id="textGradientVal">50%</span>
+          </div>
+          <input id="textGradient" type="range" min="0" max="100" value="50" aria-label="Type gradient strength">
+        </div>
         <!-- end of text controls -->
 
         <div class="control">
@@ -97,6 +105,13 @@
             <button type="button" data-colour="#ffffff">White</button>
             <button type="button" data-colour="#FFD200">Gold</button>
           </div>
+          <div class="hex-row">
+            <input id="inkPicker" type="color" value="#000000" aria-label="Pick hexagon colour">
+            <input id="inkHex" type="text" value="#000000" maxlength="7"
+                  spellcheck="false" autocomplete="off" placeholder="#000000"
+                  aria-label="Hexagon colour hex code">
+          </div>
+
           <input id="ink" type="hidden" value="#000000">
         </div>
 
@@ -108,6 +123,14 @@
               <input type="checkbox" id="background" checked>
               White background
             </label>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Brightness</span>
+            <span class="value" id="brightnessVal">0</span>
+          </div>
+          <input id="brightness" type="range" min="-100" max="100" value="0" aria-label="Brightness">
         </div>
 
         <!-- start image settings -->
@@ -160,14 +183,6 @@
             </div>
             <input id="cutoff" type="range" min="0" max="45" value="4" aria-label="Minimum tone cutoff">
             <div class="hint">Suppresses tiny hexagons in lighter areas.</div>
-          </div>
-
-          <div class="control">
-            <div class="control-head">
-              <span>Brightness</span>
-              <span class="value" id="brightnessVal">0</span>
-            </div>
-            <input id="brightness" type="range" min="-100" max="100" value="0" aria-label="Brightness">
           </div>
 
           <div class="control">
@@ -247,7 +262,7 @@
             <span>Maximum hexagon size</span>
             <span class="value" id="maxSizeVal">100%</span>
           </div>
-          <input id="maxSize" type="range" min="85" max="100" value="100" aria-label="Maximum hexagon size">
+          <input id="maxSize" type="range" min="50" max="100" value="85" aria-label="Maximum hexagon size">
           <div class="hint">Controls how large the darkest hexagons can grow within each cell.</div>
         </div>
         
@@ -313,7 +328,7 @@
             <span>Grid warping</span>
             <span class="value" id="warpVal">0%</span>
           </div>
-          <input id="warp" type="range" min="0" max="100" value="0" aria-label="Grid warping">
+          <input id="warp" type="range" min="0" max="200" value="0" aria-label="Grid warping">
           <div class="hint">Gently bends and shifts the underlying hexagon grid.</div>
         </div>
 

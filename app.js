@@ -40,6 +40,7 @@
     posY: 50, 
     text: 'TESTER WORD',
     textSize: 25,
+    textGradient: 50,
   };
 
 
@@ -215,6 +216,7 @@
     $('posXVal').textContent = `${$('posX').value}%`;
     $('posYVal').textContent = `${$('posY').value}%`;
     $('textSizeVal').textContent = `${$('textSize').value}%`;
+    $('textGradientVal').textContent = `${$('textGradient').value}%`;
   }
 
 function scheduleRender() {
@@ -254,21 +256,46 @@ function drawTextSource(context, width, height) {
   const fontFamily = '"Baskov", Georgia, serif';
   const lines = $('text').value.split('\n');
 
+  // --- Fit the text to the canvas ---
   let size = height * (readNumber('textSize', DEFAULTS.textSize) / 100);
-
   context.font = `${size}px ${fontFamily}`;
-  const widest = Math.max(...lines.map((l) => context.measureText(l).width));
+
+  let widest = Math.max(...lines.map((l) => context.measureText(l).width));
   const maxWidth = width * 0.9;
 
   if (widest > maxWidth) {
     size *= maxWidth / widest;
     context.font = `${size}px ${fontFamily}`;
+    widest = Math.max(...lines.map((l) => context.measureText(l).width));
   }
 
-  const lineHeight = size * 1.1;
+  // --- Grey background, driven by the Brightness slider ---
+  // Brightness -100 -> white (no hexagons); +100 -> near-black (almost matches the type).
+  const amount = (readNumber('brightness', 0) + 100) / 200;
+  const backgroundTone = 1 - amount * 0.92;
+  const bg = Math.round(backgroundTone * 255);
+
+  context.fillStyle = `rgb(${bg},${bg},${bg})`;
+  context.fillRect(0, 0, width, height);
+
+  // --- Type gradient: black on the left fading to a lighter grey on the right ---
+  // The light end is capped so the type never becomes lighter than the background.
+  const strength = readNumber('textGradient', DEFAULTS.textGradient) / 100;
+  const lightTone = Math.min(strength * 0.3, Math.max(0, backgroundTone - 0.03));
+  const light = Math.round(lightTone * 255);
+
+  const gradient = context.createLinearGradient(
+    width / 2 - widest / 2, 0,
+    width / 2 + widest / 2, 0
+  );
+  gradient.addColorStop(0, '#000000');
+  gradient.addColorStop(1, `rgb(${light},${light},${light})`);
+
+  // --- Draw the text ---
+  const lineHeight = size * 0.9;
   const top = height / 2 - ((lines.length - 1) * lineHeight) / 2;
 
-  context.fillStyle = '#000000';
+  context.fillStyle = gradient;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
 
@@ -1063,12 +1090,21 @@ ${background}
   const colourButtons = document.querySelectorAll('.colour-options button');
 
   function syncColourButtons() {
+    const current = $('ink').value.toLowerCase();
+
     colourButtons.forEach((button) => {
       button.classList.toggle(
         'active',
-        button.dataset.colour.toLowerCase() === $('ink').value.toLowerCase()
+        button.dataset.colour.toLowerCase() === current
       );
     });
+
+    $('inkPicker').value = current;
+
+    // this means don't overwrite the field while the person is typing in it.
+    if (document.activeElement !== $('inkHex')) {
+      $('inkHex').value = current.toUpperCase();
+    }
   }
 
   colourButtons.forEach((button) => {
@@ -1078,6 +1114,41 @@ ${background}
       scheduleRender();
     });
   });
+
+  // Turns "fd0", "#FD0" or "ffd200" into "#ffd200". Returns null if invalid.
+function normaliseHex(value) {
+  let hex = value.trim().replace(/^#/, '').toLowerCase();
+
+  if (/^[0-9a-f]{3}$/.test(hex)) {
+    hex = hex.split('').map((c) => c + c).join('');
+  }
+
+  return /^[0-9a-f]{6}$/.test(hex) ? `#${hex}` : null;
+}
+
+function setInk(hex) {
+  $('ink').value = hex;
+  syncColourButtons();
+  scheduleRender();
+}
+
+$('inkHex').addEventListener('input', (event) => {
+  const hex = normaliseHex(event.target.value);
+  if (hex) setInk(hex);
+});
+
+// On blur or Enter, tidy up or revert an invalid entry.
+$('inkHex').addEventListener('change', () => {
+  const hex = normaliseHex($('inkHex').value);
+  if (hex) {
+    setInk(hex);
+  }
+  $('inkHex').value = $('ink').value.toUpperCase();
+});
+
+$('inkPicker').addEventListener('input', (event) => {
+  setInk(event.target.value);
+});
 
   const fitButtons = document.querySelectorAll('.placement-options button');
 
@@ -1136,7 +1207,7 @@ function resetSettings() {
   }
 
   CONTROL_IDS.forEach((id) => on(id, 'input', scheduleRender));
-  ['zoom', 'posX', 'posY', 'textSize', 'text'].forEach((id) => on(id, 'input', scheduleRender));
+  ['zoom', 'posX', 'posY', 'textSize', 'text', 'textGradient'].forEach((id) => on(id, 'input', scheduleRender));
   ['imageFit', 'background'].forEach((id) => on(id, 'change', scheduleRender));
 
   ['width', 'height', 'dpi', 'units'].forEach((id) => {
