@@ -30,10 +30,10 @@
     shape: 0,
     ink: '#000000',
     background: true, // is checked
-    width: 1600,
-    height: 1200,
-    dpi: 300,
-    units: 'px',
+    width: 1080,
+    height: 1080,
+    // dpi: 300,
+    // units: 'px',
     imageFit: 'contain',
     zoom: 100,
     posX: 50,
@@ -41,6 +41,10 @@
     text: 'TESTER WORD',
     textSize: 25,
     textGradient: 50,
+    bgGrey: 50,
+    bgStrength: 100,
+    bgTexture: 'noise',
+    bgNoiseScale: 50,
   };
 
 
@@ -48,6 +52,8 @@
   const PNG_WARNING_PIXELS = 50_000_000;
   const SVG_WARNING_PIXELS = 20_000_000;
   const MAX_CANVAS_DIMENSION = 32767;
+  const DPI = 300;
+
 
   let sourceImage = null;
   let renderTimer = null;
@@ -85,6 +91,8 @@
   }
 
   function getBackgroundColour() {
+    if (mode === 'background') return '#ffffff';
+
     return $('background').checked ? '#ffffff' : null;
   }
 
@@ -100,77 +108,54 @@
   }
 
   function getDocumentSize() {
-    const units = $('units').value;
-    const dpi = readNumber('dpi', NaN);
-    const inputWidth = readNumber('width', NaN);
-    const inputHeight = readNumber('height', NaN);
+    const width = readNumber('width', NaN);
+    const height = readNumber('height', NaN);
 
-    if (
-      !Number.isFinite(inputWidth) ||
-      !Number.isFinite(inputHeight) ||
-      inputWidth <= 0 ||
-      inputHeight <= 0
-    ) {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
       return {
         valid: false,
         message: 'Enter a width and height greater than zero.'
       };
     }
 
-    if (!Number.isFinite(dpi) || dpi < 36 || dpi > 1200) {
+    if (width > 12000 || height > 12000) {
       return {
         valid: false,
-        message: 'DPI must be between 36 and 1,200.'
+        message: 'Document width and height cannot exceed 12,000 px.'
       };
     }
 
-    if (inputWidth > 12000 || inputHeight > 12000) {
+    const roundedWidth = Math.round(width);
+    const roundedHeight = Math.round(height);
+
+    if (roundedWidth < 1 || roundedHeight < 1) {
       return {
         valid: false,
-        message: 'Document width and height cannot exceed 12,000 units.'
+        message: 'Enter a width and height greater than zero.'
       };
     }
 
-    const unitScale = units === 'mm'
-      ? dpi / 25.4
-      : units === 'in'
-        ? dpi
-        : 1;
-
-    const width = Math.round(inputWidth * unitScale);
-    const height = Math.round(inputHeight * unitScale);
-
-    if (
-      !Number.isSafeInteger(width) ||
-      !Number.isSafeInteger(height) ||
-      width < 1 ||
-      height < 1 ||
-      width > MAX_CANVAS_DIMENSION ||
-      height > MAX_CANVAS_DIMENSION
-    ) {
-      return {
-        valid: false,
-        message: `Output dimensions must not exceed ${MAX_CANVAS_DIMENSION.toLocaleString()} px on either side.`
-      };
-    }
-
-    return { valid: true, width, height, dpi, units };
+    return {
+      valid: true,
+      width: roundedWidth,
+      height: roundedHeight,
+      // dpi: DPI,
+      // units: 'px'
+    };
   }
 
-  function updateDimensionLabel() {
+function updateDimensionLabel() {
+    syncPresetWithDimensions();
+
     const documentSize = getDocumentSize();
     const label = $('dimensionLabel');
-    // const hasImage = hasSource();
 
     if (!documentSize.valid) {
       label.textContent = 'Invalid dimensions';
       updateStatus('previewStatus', documentSize.message);
 
       $('exportPng').disabled = true;
-      // $('exportPngTop').disabled = true;
       $('exportSvg').disabled = true;
-      // $('exportSvgTop').disabled = true;
-
 
       return;
     }
@@ -181,11 +166,44 @@
     const hasImage = hasSource();
 
     $('exportPng').disabled = !hasImage;
-    // $('exportPngTop').disabled = !hasImage;
     $('exportSvg').disabled = !hasImage;
-    // $('exportSvgTop').disabled = !hasImage;
 
     scheduleRender();
+  }
+
+  // ---------------------------------------------------------------------------
+  // CANVAS SIZE PRESETS
+  // ---------------------------------------------------------------------------
+
+  const presetInputs = document.querySelectorAll('input[name="canvas-size"]');
+
+  // Sets the document to a preset size in pixels.
+  function applyPreset(value) {
+    const [width, height] = value.split('x');
+
+    // $('units').value = 'px';
+    $('width').value = width;
+    $('height').value = height;
+
+    updateDimensionLabel(); // also re-syncs the radio buttons
+  }
+
+  // Highlights the matching preset, or clears all of them if the size is custom.
+  // function syncPresetWithDimensions() {
+  //   const key = `${Number($('width').value)}x${Number($('height').value)}`;
+  //   const isPixels = $('units').value === 'px';
+
+  //   presetInputs.forEach((input) => {
+  //     input.checked = isPixels && input.value === key;
+  //   });
+  // }
+
+  function syncPresetWithDimensions() {
+    const key = `${Number($('width').value)}x${Number($('height').value)}`;
+
+    presetInputs.forEach((input) => {
+      input.checked = input.value === key;
+    });
   }
 
   function updateControlLabels() {
@@ -217,6 +235,9 @@
     $('posYVal').textContent = `${$('posY').value}%`;
     $('textSizeVal').textContent = `${$('textSize').value}%`;
     $('textGradientVal').textContent = `${$('textGradient').value}%`;
+    $('bgGreyVal').textContent = `${$('bgGrey').value}%`;
+    $('bgStrengthVal').textContent = `${$('bgStrength').value}%`;
+    $('bgNoiseScaleVal').textContent = `${$('bgNoiseScale').value}%`;
   }
 
 function scheduleRender() {
@@ -240,15 +261,87 @@ function scheduleRender() {
   }, 35);
 }
 
+  // Generates the grey texture that drives hexagon sizes in Background Mode.
+function drawBackgroundTexture(context, width, height) {
+  const grey = clamp(readNumber('bgGrey', 50), 0, 100) / 100;
+  const strength = (readNumber('bgStrength', 50) / 100) * 0.35;
+  const lift = readNumber('brightness', 0) / 100;
+  const textureType = $('bgTexture').value;
+
+  // Noise scale: 0% = blobs about 5% of the longer side,
+  // 100% = blobs 1.5x the longer side (one or two on screen).
+  // Exponential mapping keeps the middle of the slider feeling even.
+  const scaleAmount = clamp(readNumber('bgNoiseScale', 50), 0, 100) / 100;
+  const longestSide = Math.max(width, height);
+  const minCell = longestSide * 0.05;
+  const maxCell = longestSide * 1.5;
+  const noiseCell = minCell * Math.pow(maxCell / minCell, scaleAmount);
+
+  const image = context.createImageData(width, height);
+  const data = image.data;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let variation;
+
+      if (textureType === 'gradient') {
+        // Diagonal ramp from -1 to +1.
+        variation =
+          (x / Math.max(1, width - 1)) +
+          (y / Math.max(1, height - 1)) - 1;
+      } else {
+        // Smooth blobs from -1 to +1.
+        variation = valueNoise(x, y, noiseCell, 5) * 2 - 1;
+      }
+
+      const tone = clamp(grey + lift + variation * strength, 0, 1);
+      const value = Math.round(tone * 255);
+      const i = (y * width + x) * 4;
+
+      data[i] = value;
+      data[i + 1] = value;
+      data[i + 2] = value;
+      data[i + 3] = 255;
+    }
+  }
+
+  context.putImageData(image, 0, 0);
+}
+
+  // Smooth value noise: random values on a lattice of `cell` pixels,
+// blended with a smoothstep curve. Returns 0..1.
+function valueNoise(x, y, cell, seed = 0) {
+  const gx = x / cell;
+  const gy = y / cell;
+
+  const x0 = Math.floor(gx);
+  const y0 = Math.floor(gy);
+
+  const fx = gx - x0;
+  const fy = gy - y0;
+
+  const ux = fx * fx * (3 - 2 * fx);
+  const uy = fy * fy * (3 - 2 * fy);
+
+  const v00 = seededRandom(x0, y0, seed);
+  const v10 = seededRandom(x0 + 1, y0, seed);
+  const v01 = seededRandom(x0, y0 + 1, seed);
+  const v11 = seededRandom(x0 + 1, y0 + 1, seed);
+
+  const top = v00 + (v10 - v00) * ux;
+  const bottom = v01 + (v11 - v01) * ux;
+
+  return top + (bottom - top) * uy;
+}
 
   // ---------------------------------------------------------------------------
   // TEXT LOADING
   // ---------------------------------------------------------------------------
   function hasSource() {
-  return mode === 'text'
-    ? $('text').value.trim().length > 0
-    : Boolean(sourceImage);
-}
+    if (mode === 'background') return true;
+    if (mode === 'text') return $('text').value.trim().length > 0;
+    return Boolean(sourceImage);
+  }
 
 // Equivalent of your p5 pg.text(...) buffer.
 // Size is a % of canvas height, so preview and full-res export match.
@@ -324,9 +417,21 @@ function setMode(next) {
 
   $('imageMode').classList.toggle('active', mode === 'image');
   $('typeMode').classList.toggle('active', mode === 'text');
+  $('backgroundMode').classList.toggle('active', mode === 'background');
+
+  const modeLabels = {
+    image: 'Image Mode',
+    text: 'Type Mode',
+    background: 'Background Mode'
+  };
+  $('modeName').textContent = modeLabels[mode] || 'Image Mode';
 
   document.querySelectorAll('[data-mode]').forEach((el) => {
-    el.hidden = el.dataset.mode !== mode;
+    el.hidden = !el.dataset.mode.split(' ').includes(mode);
+  });
+
+  document.querySelectorAll('[data-hide-in]').forEach((el) => {
+    el.hidden = el.dataset.hideIn.split(' ').includes(mode);
   });
 
   const ready = hasSource();
@@ -397,7 +502,7 @@ function setMode(next) {
   }
 
   // Draw the source image into the output-sized sampling canvas.
-  function getSourceImageData(width, height) {
+function getSourceImageData(width, height) {
     const canvas = document.createElement('canvas');
 
     canvas.width = width;
@@ -409,6 +514,12 @@ function setMode(next) {
 
     if (!context) {
       throw new Error('Canvas image processing is unavailable in this browser.');
+    }
+
+    if (mode === 'background') {
+      // Writes the grey + noise/gradient texture directly into the pixel data.
+      drawBackgroundTexture(context, width, height);
+      return context.getImageData(0, 0, width, height);
     }
 
     const background = getBackgroundColour();
@@ -475,7 +586,7 @@ function setMode(next) {
     let luminance =
       (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
 
-    if (mode === 'text') return luminance; // text is pure black on white, so skip tone settings
+    if (mode === 'text' || mode === 'background') return luminance;
 
     const brightness = readNumber('brightness', 0);
 
@@ -840,23 +951,19 @@ function load_text() {
   // SVG DOWNLOLADS
   // ---------------------------------------------------------------------------
 
-  function formatPhysicalDimension(pixelDimension, units, dpi) {
-    if (units === 'mm') {
-      return `${(pixelDimension / dpi * 25.4).toFixed(3)}mm`;
-    }
-
-    return `${(pixelDimension / dpi).toFixed(4)}in`;
+  function formatPhysicalDimension(pixelDimension) {
+    return `${(pixelDimension / DPI).toFixed(4)}in`;
   }
 
-  function createSvg(width, height, result, documentSize) {
+function createSvg(width, height, result) {
     const polygons = result.hexagons.map((hexagon) => {
-    const points = getHexagonPoints(
-      hexagon.x,
-      hexagon.y,
-      hexagon.radius,
-      hexagon.seed,
-      hexagon.roughness
-    );
+      const points = getHexagonPoints(
+        hexagon.x,
+        hexagon.y,
+        hexagon.radius,
+        hexagon.seed,
+        hexagon.roughness
+      );
 
       const pointList = points
         .map((point) =>
@@ -873,27 +980,8 @@ function load_text() {
       ? `<rect width="${width}" height="${height}" fill="${backgroundColour}"/>`
       : '';
 
-    // const grainMarks = generateGrainMarks(width, height);
-
-    // const grainMask = grainMarks.length
-    //   ? `<mask id="grainMask" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse"><rect width="${width}" height="${height}" fill="white"/>${grainMarks.map((mark) => `<circle cx="${mark.x.toFixed(2)}" cy="${mark.y.toFixed(2)}" r="${mark.radius.toFixed(2)}" fill="black"/>`).join('')}</mask>`
-    //   : '';
-
-    // const maskAttribute = grainMarks.length
-    //   ? ' mask="url(#grainMask)"'
-    //   : '';
-
-    const physicalWidth = formatPhysicalDimension(
-      width,
-      documentSize.units,
-      documentSize.dpi
-    );
-
-    const physicalHeight = formatPhysicalDimension(
-      height,
-      documentSize.units,
-      documentSize.dpi
-    );
+    const physicalWidth = formatPhysicalDimension(width);
+    const physicalHeight = formatPhysicalDimension(height);
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${physicalWidth}" height="${physicalHeight}" viewBox="0 0 ${width} ${height}">
@@ -1030,7 +1118,7 @@ ${background}
     window.setTimeout(() => {
       try {
         const result = generateHexagons(width, height);
-        const svg = createSvg(width, height, result, documentSize);
+        const svg = createSvg(width, height, result);
 
         const blob = new Blob(
           [svg],
@@ -1152,6 +1240,28 @@ $('inkPicker').addEventListener('input', (event) => {
 
   const fitButtons = document.querySelectorAll('.placement-options button');
 
+
+function syncSegmented(groupName) {
+  document
+    .querySelectorAll(`.segmented[data-group="${groupName}"] button`)
+    .forEach((button) => {
+      button.classList.toggle('active', button.dataset.value === $(groupName).value);
+    });
+}
+
+function setupSegmented(groupName) {
+  document
+    .querySelectorAll(`.segmented[data-group="${groupName}"] button`)
+    .forEach((button) => {
+      button.addEventListener('click', () => {
+        $(groupName).value = button.dataset.value;
+        syncSegmented(groupName);
+        scheduleRender();
+      });
+    });
+}
+
+
 function syncFitButtons() {
   fitButtons.forEach((button) => {
     button.classList.toggle('active', button.dataset.fit === $('imageFit').value);
@@ -1183,6 +1293,8 @@ function resetSettings() {
     scheduleRender();
     syncColourButtons();
     syncFitButtons();
+    syncSegmented('bgTexture');
+    // syncSegmented('bgBrightness');
   }
 
   $('file').addEventListener('change', (event) => {
@@ -1210,7 +1322,7 @@ function resetSettings() {
   ['zoom', 'posX', 'posY', 'textSize', 'text', 'textGradient'].forEach((id) => on(id, 'input', scheduleRender));
   ['imageFit', 'background'].forEach((id) => on(id, 'change', scheduleRender));
 
-  ['width', 'height', 'dpi', 'units'].forEach((id) => {
+  ['width', 'height'].forEach((id) => {
     on(id, 'input', updateDimensionLabel);
     on(id, 'change', updateDimensionLabel);
   });
@@ -1227,16 +1339,24 @@ function resetSettings() {
   });
   $('imageMode').addEventListener('click', () => setMode('image'));
   $('typeMode').addEventListener('click', () => setMode('text'));
+  $('backgroundMode').addEventListener('click', () => setMode('background'));
   $('text').addEventListener('input', scheduleRender);
   $('textSize').addEventListener('input', scheduleRender);
   
   $('exportPng').addEventListener('click', exportPng);
   $('exportSvg').addEventListener('click', exportSvg);
+  $('resetBtn').addEventListener('click', resetSettings);
+  
+  
+  
+  ['bgGrey', 'bgStrength', 'bgNoiseScale'].forEach((id) => on(id, 'input', scheduleRender));
+  setupSegmented('bgTexture');
+  // setupSegmented('bgBrightness');
+
   // $('imageMode').addEventListener('click', () => setMode('image'));
   // $('typeMode').addEventListener('click', () => setMode('text'));
   
   // $('fontFile').addEventListener('change', (e) => loadFontFile(e.target.files[0]));
-  $('resetBtn').addEventListener('click', resetSettings);
   new FontFace('Baskov', 'url(BaskovRegular.otf)')
       .load()
       .then((face) => {
@@ -1246,6 +1366,17 @@ function resetSettings() {
       .catch((error) => console.warn('Baskov failed to load:', error));
 
   updateControlLabels();
+
+  presetInputs.forEach((input) => {
+    input.addEventListener('change', () => applyPreset(input.value));
+  });
+
+  const initialPreset = document.querySelector('input[name="canvas-size"]:checked');
+
+  if (initialPreset) {
+    applyPreset(initialPreset.value);
+  }
+
   updateDimensionLabel();
   syncColourButtons();
   syncFitButtons();

@@ -4,38 +4,83 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A small tool for making bold, hex-based halftone images.">
-  <title>D&AD Hex Image Studio</title>
+  <title>Hex Image Studio</title>
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
 <body>
   <div class="app">
+    <!-- top nav bar here  -->
     <header class="topbar">
       <div class="topmeta">⬡ D&AD Hex Image Studio</div>
+
+      <div class="mode-switcher">
+        <span class="mode-name" id="modeName">Image Mode</span>
+
+        <div class="mode-menu-wrap">
+          <button type="button" class="mode-change" aria-haspopup="true">Change</button>
+
+          <div class="mode-menu" role="menu">
+            <button type="button" role="menuitem" id="imageMode">Image Mode</button>
+            <button type="button" role="menuitem" id="typeMode">Type Mode</button>
+            <button type="button" role="menuitem" id="backgroundMode">Background Mode</button>
+            <button type="button" role="menuitem" id="videoMode" disabled aria-disabled="true"
+                    title="Coming soon">Video Mode</button>
+          </div>
+        </div>
+      </div>
+
       <div class="actions">
-        <button id="imageMode" type="button">Image Mode</button>
-        <button id="typeMode" type="button">Type Mode</button>
         <button id="resetBtn" type="button">Reset</button>
         <button id="exportSvg" type="button" disabled>Export SVG</button>
         <button class="primary" id="exportPng" type="button" disabled>Export PNG</button>
       </div>
     </header>
+    <!-- end of nav bar  -->
 
+    <!-- LEFT SIDE  -->
     <div class="workspace">
       <aside class="left">
-        <h2 class="section-title">Document</h2>
+        <h2 class="section-title">Canvas Settings</h2>
+        <fieldset class="canvas-presets" aria-label="Canvas size">
+          <label class="preset" title="1080 × 1080">
+            <input type="radio" name="canvas-size" value="1080x1080" checked>
+            <span class="preset-icon" style="--w: 27px; --h: 27px"></span>
+            <span class="preset-label">1:1</span>
+          </label>
+
+          <label class="preset" title="1080 × 1350">
+            <input type="radio" name="canvas-size" value="1080x1350">
+            <span class="preset-icon" style="--w: 27px; --h: 35px"></span>
+            <span class="preset-label">4:5</span>
+          </label>
+
+          <label class="preset" title="1080 × 1920">
+            <input type="radio" name="canvas-size" value="1080x1920">
+            <span class="preset-icon" style="--w: 27px; --h: 49px"></span>
+            <span class="preset-label">9:16</span>
+          </label>
+
+          <label class="preset" title="1920 × 1080">
+            <input type="radio" name="canvas-size" value="1920x1080">
+            <span class="preset-icon" style="--w: 49px; --h: 27px"></span>
+            <span class="preset-label">16:9</span>
+          </label>
+        </fieldset>
+
+        <h2 class="section-title">Additional Settings</h2>
         <div class="fieldgrid">
           <div class="field">
             <label for="width">Width</label>
-            <input id="width" type="number" min="1" max="12000" value="1600">
+            <input id="width" type="number" min="1" max="12000" value="1080">
           </div>
           <div class="field">
             <label for="height">Height</label>
-            <input id="height" type="number" min="1" max="12000" value="1200">
+            <input id="height" type="number" min="1" max="12000" value="1080">
           </div>
         </div>
 
-        <div class="fieldgrid fieldgrid-spaced">
+        <!-- <div class="fieldgrid fieldgrid-spaced">
           <div class="field">
             <label for="units">Units</label>
             <select id="units" aria-label="Document units">
@@ -52,7 +97,9 @@
 
         <div class="hint">
           Physical units are converted to pixels using your DPI setting.
-        </div>
+        </div> -->
+
+
         <div data-mode="image"> <!-- image controls -->
           <h2 class="section-title spaced">Source image</h2>
           <label class="upload">
@@ -66,6 +113,49 @@
           <small>Choose JPG, PNG or WebP</small>
         </label>
         </div> <!-- end of image controls -->
+
+
+        <!-- background controls  -->
+        <div data-mode="background" hidden>
+          <h2 class="section-title spaced">Background</h2>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Grey level</span>
+              <span class="value" id="bgGreyVal">50%</span>
+            </div>
+            <input id="bgGrey" type="range" min="0" max="100" value="50" aria-label="Background grey level">
+          </div>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Texture</span>
+            </div>
+            <div class="segmented" data-group="bgTexture">
+              <button type="button" data-value="noise" class="active">Noise</button>
+              <button type="button" data-value="gradient">Gradient</button>
+            </div>
+            <input id="bgTexture" type="hidden" value="noise">
+          </div>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Noise scale</span>
+              <span class="value" id="bgNoiseScaleVal">50%</span>
+            </div>
+            <input id="bgNoiseScale" type="range" min="0" max="100" value="50" aria-label="Noise scale">
+            <div class="hint">Size of the noise blobs. Affects Noise texture only.</div>
+          </div>
+
+          <div class="control">
+            <div class="control-head">
+              <span>Texture strength</span>
+              <span class="value" id="bgStrengthVal">50%</span>
+            </div>
+            <input id="bgStrength" type="range" min="0" max="100" value="50" aria-label="Texture strength">
+          </div>
+        </div>
+        <!-- end of bg controls  -->
 
         <!-- text controls -->
         <div data-mode="text" hidden>
@@ -85,20 +175,20 @@
             </div>
             <input id="textSize" type="range" min="5" max="100" value="25" aria-label="Text size">
           </div>
-        </div>
 
-        <div class="control">
-          <div class="control-head">
-            <span>Type gradient</span>
-            <span class="value" id="textGradientVal">50%</span>
+          <div class="control">
+            <div class="control-head">
+              <span>Type gradient</span>
+              <span class="value" id="textGradientVal">50%</span>
+            </div>
+            <input id="textGradient" type="range" min="0" max="100" value="50" aria-label="Type gradient strength">
           </div>
-          <input id="textGradient" type="range" min="0" max="100" value="50" aria-label="Type gradient strength">
         </div>
         <!-- end of text controls -->
 
         <div class="control">
           <div class="control-head">
-            <span>Hexagon colour</span>
+            <h2 class="section-title">Hexagon colour</h2>
           </div>
           <div class="colour-options">
             <button type="button" data-colour="#000000" class="active">Black</button>
@@ -117,15 +207,15 @@
 
         <div class="control">
           <div class="control-head">
-            <span>Background</span>
+            <h2 class="section-title">RENDER BACKGROUND</h2>
           </div>
             <label>
               <input type="checkbox" id="background" checked>
-              White background
+              Fill Background
             </label>
         </div>
 
-        <div class="control">
+        <div class="control" >
           <div class="control-head">
             <span>Brightness</span>
             <span class="value" id="brightnessVal">0</span>
@@ -253,7 +343,7 @@
             <span>Hexagon spacing</span>
             <span class="value" id="spacingVal">18 px</span>
           </div>
-          <input id="spacing" type="range" min="3" max="12" value="6" aria-label="Hexagon spacing">
+          <input id="spacing" type="range" min="3" max="30" value="6" aria-label="Hexagon spacing">
           <div class="hint">Smaller spacing creates more hexagons and finer image detail.</div>
         </div>
 

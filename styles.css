@@ -78,12 +78,177 @@ button:disabled {
 }
 
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 0 20px;
   background: #20211f;
   color: #f7f7f4;
+}
+
+.topmeta   { grid-column: 1; }
+.mode-switcher { grid-column: 2; }
+.actions   { grid-column: 3; justify-self: end; }
+
+.mode-switcher {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.mode-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #e9ebe5;
+  white-space: nowrap;
+}
+
+.mode-menu-wrap {
+  position: relative;
+}
+
+.mode-change {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 9px 18px;
+}
+
+/* Padding (not margin) keeps the hover path unbroken between button and menu */
+.mode-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-top: 12px;
+  min-width: 220px;
+  display: none;
+  z-index: 20;
+}
+
+.mode-menu-wrap:hover .mode-menu,
+.mode-menu-wrap:focus-within .mode-menu {
+  display: block;
+}
+
+/* little pointer arrow */
+.mode-menu::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top: 0;
+  border-bottom-color: #d9d9d9;
+}
+
+.mode-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 18px 16px;
+  background: #d9d9d9;
+  color: #4a4a4a;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.mode-menu button:hover {
+  background: #ececec;
+  border-color: transparent;
+}
+
+.mode-menu button.active {
+  background: #FFD200;
+  color: #2b2b2b;
+  font-weight: 800;
+}
+
+.mode-menu button:disabled,
+.mode-menu button:disabled:hover {
+  background: #888;
+  color: #b4b4b4;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.canvas-presets {
+  --active-color: #ffdf00;
+
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+
+  width: 209px;
+  height: 100px;
+  margin: 0;
+  padding-left: 15px;
+  padding-right: 15px;
+  border: 0;
+
+  background: #000;
+  color: #fff;
+}
+
+.preset {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Visually hidden, but keyboard- and screen-reader-accessible. */
+.preset input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.preset-icon {
+  box-sizing: border-box;
+  display: block;
+  width: var(--w);
+  height: var(--h);
+  border: 1px solid #d9d9d9;
+  background: transparent;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.preset-label {
+  font-family: Inter, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 1.8px;
+}
+
+/* Hover: 50% white. */
+@media (hover: hover) {
+  .preset:hover input:not(:checked) + .preset-icon {
+    background: rgb(255 255 255 / 50%);
+  }
+}
+
+/* Selected: stays yellow, including on hover. */
+.preset input:checked + .preset-icon {
+  background: var(--active-color);
+  border-color: var(--active-color);
+}
+
+.preset input:focus-visible + .preset-icon {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
 }
 
 .brand {
@@ -406,11 +571,18 @@ select {
 }
 
 .colour-options button.active,
-.placement-options button.active {
+.placement-options button.active, 
+.segmented button.active {
   background: #FFD200;
   color:#000000
   /* outline: 2px solid currentColor;
   outline-offset: 2px; */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preset-icon {
+    transition: none;
+  }
 }
 
 @media (max-width: 900px) {
