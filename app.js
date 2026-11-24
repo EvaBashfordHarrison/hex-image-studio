@@ -11,7 +11,7 @@
 
   const CONTROL_IDS = [
     'spacing', 'maxSize', 'cutoff', 'brightness', 'contrast', 'black', 'white',
-    'bleed', 'jitter', 'variation', 'warp', 'clump',
+    'bleed', 'jitter', 'variation', 'warp', 'warpSize', 'clump',
   ];
 
   const DEFAULTS = {
@@ -26,6 +26,7 @@
     jitter: 0,
     variation: 0,
     warp: 0,
+    warpSize: 100,
     clump: 0,
     shape: 0,
     ink: '#000000',
@@ -47,6 +48,71 @@
     bgNoiseScale: 50,
   };
 
+
+// Values are written into the matching control IDs.
+  const LOOK_PRESETS = {
+    // Image mode
+    portraitSmall: {
+      spacing: 15,
+      maxSize: 100,
+      bleed: 15,
+      variation: 10,
+      clump: 10,
+    },
+    portraitBig: {
+      spacing: 6,
+      maxSize: 100,
+      bleed: 35,
+      jitter: 7,
+      variation: 6,
+    },
+
+    // Type mode
+    type1: {
+      textSize: 100,
+      textGradient: 85,
+      brightness: -50,
+      spacing: 7,
+      maxSize: 90,
+      bleed: 35,
+      jitter: 7,
+      variation: 6,
+      warp: 30,
+      clump: 10,
+    },
+    type2: {
+      textSize: 100,
+      textGradient: 30,
+      brightness: -50,
+      spacing: 7,
+      maxSize: 90,
+      bleed: 25,
+      jitter: 0,
+      variation: 5,
+      warp: 0,
+      clump: 20,
+    },
+    type3: {
+      textSize: 100,
+      textGradient: 15,
+      brightness: -100,
+      spacing: 7,
+      maxSize: 90,
+      bleed: 0,
+      jitter: 7,
+      variation: 10,
+      warp: 0,
+      clump: 45,
+    },
+
+    // Background mode (texture only, for now)
+    bgNoise: {
+      bgTexture: 'noise',
+    },
+    bgGradient: {
+      bgTexture: 'gradient',
+    },
+  };
 
   const PREVIEW_MAX_DIMENSION = 1200;
   const PNG_WARNING_PIXELS = 50_000_000;
@@ -221,6 +287,7 @@ function updateDimensionLabel() {
           'jitter',
           'variation',
           'warp',
+          'warpSize',
           'clump',
         ].includes(id)
       ) {
@@ -687,11 +754,12 @@ function generateHexagons(width, height, scale = 1) {
   const jitter = readNumber('jitter', 0) / 100;
   const variation = readNumber('variation', 0) / 100;
   const warp = readNumber('warp', 0) / 100;
+  const warpScale = readNumber('warpSize', 100) / 100;
   const clump = readNumber('clump', 0) / 100;
-  // const shape = readNumber('shape', 0) / 100;
 
-  // Pointy-top grid: columns are one hexagon-width apart,
-  // rows interlock at 3/4 of the hexagon height.
+  // Warp size scales the noise grid. Larger values give bigger, smoother patches.
+  const warpGrid = spacing * warpScale;
+
   const stepX = spacing * Math.sqrt(3) / 2;
   const stepY = spacing * 0.75;
 
@@ -745,11 +813,11 @@ function generateHexagons(width, height, scale = 1) {
         spacing * 0.35 * jitter;
 
       const warpX =
-        organicNoise(centerX / spacing, centerY / spacing, 11) *
+        organicNoise(centerX / warpGrid, centerY / warpGrid, 11) *
         spacing * 0.55 * warp;
 
       const warpY =
-        organicNoise(centerX / spacing, centerY / spacing, 29) *
+        organicNoise(centerX / warpGrid, centerY / warpGrid, 29) *
         spacing * 0.55 * warp;
 
       const clumpField = Math.max(
@@ -1289,12 +1357,24 @@ function resetSettings() {
     }
   });
 
-    updateDimensionLabel();
-    scheduleRender();
-    syncColourButtons();
-    syncFitButtons();
+  updateDimensionLabel();
+  scheduleRender();
+  syncColourButtons();
+  syncFitButtons();
+  syncSegmented('bgTexture');
+}
+
+  function applyLookPreset(key) {
+    const preset = LOOK_PRESETS[key];
+    if (!preset) return;
+
+    Object.entries(preset).forEach(([id, value]) => {
+      const el = $(id);
+      if (el) el.value = value;
+    });
+
     syncSegmented('bgTexture');
-    // syncSegmented('bgBrightness');
+    scheduleRender();
   }
 
   $('file').addEventListener('change', (event) => {
@@ -1351,12 +1431,9 @@ function resetSettings() {
   
   ['bgGrey', 'bgStrength', 'bgNoiseScale'].forEach((id) => on(id, 'input', scheduleRender));
   setupSegmented('bgTexture');
-  // setupSegmented('bgBrightness');
-
-  // $('imageMode').addEventListener('click', () => setMode('image'));
-  // $('typeMode').addEventListener('click', () => setMode('text'));
-  
-  // $('fontFile').addEventListener('change', (e) => loadFontFile(e.target.files[0]));
+  document.querySelectorAll('[data-preset]').forEach((button) => {
+    button.addEventListener('click', () => applyLookPreset(button.dataset.preset));
+  });
   new FontFace('Baskov', 'url(BaskovRegular.otf)')
       .load()
       .then((face) => {

@@ -397,6 +397,17 @@ button:disabled {
   padding: 18px;
 }
 
+.preset-buttons {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.preset-buttons button {
+  flex: 1;
+  padding: 7px 6px;
+}
+
 #preview {
   max-width: 100%;
   max-height: 100vh;

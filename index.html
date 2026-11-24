@@ -68,7 +68,6 @@
           </label>
         </fieldset>
 
-        <h2 class="section-title">Additional Settings</h2>
         <div class="fieldgrid">
           <div class="field">
             <label for="width">Width</label>
@@ -335,8 +334,28 @@
         </div>
       </main>
 
+      <!-- ////////////// RIGHT SIDE HERE ////////////// -->
       <aside class="right">
         <h2 class="section-title">Hexagon Properties</h2>
+
+        <!-- Image mode presets -->
+        <div class="preset-buttons" data-mode="image" hidden>
+          <button type="button" data-preset="portraitSmall">Portrait small</button>
+          <button type="button" data-preset="portraitBig">Portrait big</button>
+        </div>
+
+        <!-- Type mode presets -->
+        <div class="preset-buttons" data-mode="text" hidden>
+          <button type="button" data-preset="type1">Preset 1</button>
+          <button type="button" data-preset="type2">Preset 2</button>
+          <button type="button" data-preset="type3">Preset 3</button>
+        </div>
+
+        <!-- Background mode presets -->
+        <div class="preset-buttons" data-mode="background" hidden>
+          <button type="button" data-preset="bgNoise">Noisy</button>
+          <button type="button" data-preset="bgGradient">Gradient</button>
+        </div>
 
         <div class="control">
           <div class="control-head">
@@ -384,6 +403,7 @@
           <input id="grainSize" type="range" min="1" max="8" value="2" aria-label="Grain size">
           <div class="hint">Controls whether the texture is fine speckling or larger worn patches.</div>
         </div> -->
+        
         <h2 class="section-title">Ink</h2>
 
         <div class="control">
@@ -415,11 +435,20 @@
 
         <div class="control">
           <div class="control-head">
-            <span>Grid warping</span>
+            <span>Warp depth</span>
             <span class="value" id="warpVal">0%</span>
           </div>
-          <input id="warp" type="range" min="0" max="200" value="0" aria-label="Grid warping">
+          <input id="warp" type="range" min="0" max="200" value="0" aria-label="Warp depth">
           <div class="hint">Gently bends and shifts the underlying hexagon grid.</div>
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <span>Warp size</span>
+            <span class="value" id="warpSizeVal">100%</span>
+          </div>
+          <input id="warpSize" type="range" min="100" max="300" value="100" aria-label="Warp size">
+          <div class="hint">Scales the size of the warp grid. 100% is the original size.</div>
         </div>
 
         <div class="control">
